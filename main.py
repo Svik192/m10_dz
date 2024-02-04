@@ -1,102 +1,106 @@
-def input_error(func):
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except (TypeError, KeyError, ValueError, IndexError) as e:
-            print(f"Error: {e}")
-            return None
-
-    return wrapper
+from collections import UserDict
 
 
-def hello(data):
-    return "How can I help you?"
+class Field:
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return str(self.value)
 
 
-@input_error
-def add_contact(data, name, phone):
-    data[name] = phone
-    return f"Contact '{name}' with phone number '{phone}' added successfully."
+class Name(Field):
+    pass
 
 
-@input_error
-def change_phone(data, name, phone):
-    data[name] = phone
-    return f"Phone number for '{name}' changed to '{phone}'."
+class Phone(Field):
+    def __init__(self, value):
+        if not self.validate_phone(value):
+            raise ValueError("Invalid phone number format")
+        super().__init__(value)
+
+    @staticmethod
+    def validate_phone(value):
+        return len(value) == 10 and value.isdigit()
 
 
-@input_error
-def get_phone(data, name):
-    return f"The phone number for '{name}' is {data[name]}."
+class Record:
+    def __init__(self, name):
+        self.name = Name(name)
+        self.phones = []
+
+    def add_phone(self, phone):
+        self.phones.append(Phone(phone))
+
+    def remove_phone(self, phone):
+        self.phones = [p for p in self.phones if p.value != phone]
+
+    def edit_phone(self, old_phone, new_phone):
+        # if old_phone not in self.phones:
+        #     raise ValueError("номеру телефону не існує")
+
+        if self.find_phone(old_phone) is None:
+            raise ValueError("номеру телефону не існує")
+
+        self.remove_phone(old_phone)
+        self.add_phone(new_phone)
+
+    def find_phone(self, phone):
+        # if phone in self.phones:
+        #     return phone
+        # else:
+        #     return None
+
+        for p in self.phones:
+            if p.value == phone:
+                return p
+        return None
+
+    def __str__(self):
+        return f"Contact name: {self.name.value}, phones: {'; '.join(str(p) for p in self.phones)}"
 
 
-def show_all(data):
-    if not data:
-        return "No contacts available."
+class AddressBook(UserDict):
+    def add_record(self, record):
+        self.data[record.name.value] = record
 
-    result = "All contacts:\n"
-    for name, phone in data.items():
-        result += f"{name}: {phone}\n"
-    return result
+    def find(self, name):
+        return self.data.get(name)
 
-
-def good_bye(data):
-    return "Good bye!"
+    def delete(self, name):
+        if name in self.data:
+            del self.data[name]
 
 
-def default_handler(data):
-    return "Unknown command. Please try again."
+# Створення нової адресної книги
+book = AddressBook()
 
+# Створення запису для John
+john_record = Record("John")
+john_record.add_phone("1234567890")
+john_record.add_phone("5555555555")
 
-commands = {
-    "hello": hello,
-    "add": add_contact,
-    "change": change_phone,
-    "phone": get_phone,
-    "show all": show_all,
-    "good bye": good_bye,
-    "close": good_bye,
-    "exit": good_bye,
-}
+# Додавання запису John до адресної книги
+book.add_record(john_record)
 
+# Створення та додавання нового запису для Jane
+jane_record = Record("Jane")
+jane_record.add_phone("9876543210")
+book.add_record(jane_record)
 
-@input_error
-def parse_command(user_input):
-    command, args = None, []
+# Виведення всіх записів у книзі
+for name, record in book.data.items():
+    print(record)
 
-    for cmd in commands:
-        if user_input.startswith(cmd):
-            command = cmd
-            args = user_input.replace(cmd, "").split()
+# Знаходження та редагування телефону для John
+john = book.find("John")
+john.edit_phone("1234567890", "1112223333")
 
-    return command, args
+print(john)  # Виведення: Contact name: John, phones: 1112223333; 5555555555
 
+# Пошук конкретного телефону у записі John
+found_phone = john.find_phone("5555555555")
+print(f"{john.name}: {found_phone}")  # Виведення: 5555555555
 
-@input_error
-def curry_command_handler(data):
-    def command_handler(command, *args):
-        return commands.get(command, default_handler)(data, *args)
-
-    return command_handler
-
-
-def main():
-    data = {}
-    handle_command = curry_command_handler(data)
-
-    while True:
-        user_input = input("Enter command: ")
-
-        command, args = parse_command(user_input)
-        print("command: ", command, type(command))
-        print("args: ", args)
-
-        result = handle_command(command, *args)
-        print(result)
-
-        if result == "Good bye!":
-            break
-
-
-if __name__ == "__main__":
-    main()
+# Видалення запису Jane
+book.delete("Jane")
