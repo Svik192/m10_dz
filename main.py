@@ -36,21 +36,14 @@ class Record:
         self.phones = [p for p in self.phones if p.value != phone]
 
     def edit_phone(self, old_phone, new_phone):
-        # if old_phone not in self.phones:
-        #     raise ValueError("номеру телефону не існує")
 
         if self.find_phone(old_phone) is None:
-            raise ValueError("номеру телефону не існує")
+            raise ValueError("phone number does not exist")
 
         self.remove_phone(old_phone)
         self.add_phone(new_phone)
 
     def find_phone(self, phone):
-        # if phone in self.phones:
-        #     return phone
-        # else:
-        #     return None
-
         for p in self.phones:
             if p.value == phone:
                 return p
